@@ -13,7 +13,7 @@ const Header = (props) => {
     setInputValue("");
   };
   return (
-    <div className="header">
+    <div className="header border">
       <input
         type="text"
         value={inputValue}

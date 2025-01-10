@@ -13,6 +13,7 @@ const Header = ({ onSearch }) => {
       <input
         type="text"
         value={input}
+        placeholder="Enter City Name"
         onChange={(e) => setInput(e.target.value)}
         className="search-input"
       ></input>

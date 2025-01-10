@@ -2,9 +2,15 @@
     display: flex;
     flex-direction: column;
     justify-items: center;
-    width: 70%;
+}
+.weather-img-container{
+    border-radius: 5px;
+    max-height: 375px;
+    overflow: hidden;
+
 }
 .weather-img-container img{
     max-height: 100%;
     max-width: 100%;
+    object-fit: fill;
 }

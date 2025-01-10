@@ -2,65 +2,87 @@ import "./App.css";
 import Header from "./Header";
 import Body from "./Body";
 import { useState } from "react";
-import { API_KEY } from "../utils/constants";
+import { API_KEY, UNSPLASH_ACCESS_KEY } from "../utils/constants";
 
 function App() {
-  // const weatherData = [
-  //   {
-  //     name: "Daman",
-  //     temp: 20,
-  //     desc: "weather is windy",
-  //     humidity: 30,
-  //     wind_speed: "15",
-  //     sunrise: "06:00 AM",
-  //     sunset: "06:30 PM",
-  //     img_url: "https://www.holidify.com/images/bgImages/DAMAN.jpg",
-  //     fav: false,
-  //   },
-  //   {
-  //     name: "Mumbai",
-  //     temp: 22,
-  //     desc: "weather is cloudy",
-  //     humidity: 25,
-  //     wind_speed: "20",
-  //     sunrise: "06:05 AM",
-  //     sunset: "06:32 PM",
-  //     img_url:
-  //       "https://www.agoda.com/wp-content/uploads/2024/01/Featured-image-Gateway-of-India-Mumbai-1244x700.jpg",
-  //     fav: false,
-  //   },
-  // ];
-
   const [city, setCity] = useState("");
   const [weatherData, setWeatherData] = useState(null);
+  const [cityData, setCityData] = useState(null);
   const [error, setError] = useState("");
 
-  const fetchWeatherData = async (cityName) => {
+  const fetchWeatherandCityData = async (cityName) => {
     const API_URL = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&units=metric&appid=${API_KEY}`;
-    console.log(API_URL);
+    const CITY_URL = `https://api.unsplash.com/search/photos?query=${cityName}&client_id=${UNSPLASH_ACCESS_KEY}`;
     try {
-      const response = await fetch(API_URL);
-      if (!response.ok) {
-        throw new Error("Error while fetching data..!!");
+      const results = await Promise.allSettled([
+        fetch(API_URL).then((res) => {
+          if (!res.ok) {
+            throw new Error("Error while fetching data..!!");
+          }
+          return res.json();
+        }),
+        fetch(CITY_URL).then((res) => {
+          if (!res.ok) {
+            throw new Error("Error while fetching data..!!");
+          }
+          return res.json();
+        }),
+      ]);
+      console.log(results);
+
+      //handle weather data
+      const weatherData = results[0];
+      if (weatherData.status === "fulfilled") setWeatherData(weatherData.value);
+      else {
+        setWeatherData(null);
+        setError(weatherData.reason.message);
       }
-      const data = response.json();
-      console.log(data);
-      setWeatherData(data);
-      setError("");
-    } catch (err) {
-      console.log(err.message);
-      setError(err.message);
-      setWeatherData(null);
+
+      //handle city Image data
+      const cityImageData = results[1];
+      if (cityImageData.status === "fulfilled")
+        setCityData(cityImageData.value.results[0]?.urls.full);
+      else {
+        setCityData(null);
+        console.error(cityImageData.reason.message);
+      }
+
+      //handle error messages
+      const errorMessages = results
+        .filter((res) => res.status === "rejected")
+        .map((res) => res.reason.message);
+
+      if (errorMessages.length > 0) {
+        setError(`Issues occurred: ${errorMessages.join(" ")}`);
+      } else {
+        setError(null);
+      }
+    } catch (error) {
+      console.error("Unexpected error:", err.message);
+      setError("An unexpected error occurred.");
     }
   };
-  // const handleCityName = (city) => {
-  //   setCity(city);
-  // };
-  // console.log(`received city name ${cityName}`);
+
+  const fetchCityImage = async (cityName) => {
+    const CITY_URL = `https://api.unsplash.com/search/photos?query=${cityName}&client_id=${UNSPLASH_ACCESS_KEY}`;
+
+    try {
+      const response = await fetch(CITY_URL);
+      const data = await response.json();
+      console.log(data);
+
+      if (!response.ok) {
+        throw new Error("Error while fetching city image..!!");
+      }
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  };
   return (
     <>
-      <Header onSearch={fetchWeatherData} />
-      {/* <Body weatherData={weatherData} cityName={cityName} /> */}
+      <Header onSearch={fetchWeatherandCityData} />
+      <Body weatherData={weatherData} cityImage={cityData} error={error} />
     </>
   );
 }
